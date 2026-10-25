@@ -47,3 +47,90 @@ async def get_stats(conn: AsyncConnection, window_seconds: int) -> list[dict[str
     """Per bank+method stats for the last window_seconds. Pairs with no traffic are omitted."""
     cur = await conn.execute(_STATS_SQL, {"window_seconds": window_seconds})
     return await cur.fetchall()
+
+
+_TIMESERIES_SQL = """
+SELECT bank,
+       date_bin(make_interval(secs => %(bucket_seconds)s), created_at,
+                TIMESTAMPTZ '2000-01-01')                    AS bucket_start,
+       count(*)                                              AS total,
+       round(avg((status = 'SUCCESS')::int), 4)::float8      AS success_rate
+FROM payments
+WHERE created_at >= now() - make_interval(secs => %(window_seconds)s)
+GROUP BY bank, bucket_start
+ORDER BY bucket_start, bank
+"""
+
+
+async def get_timeseries(
+    conn: AsyncConnection, window_seconds: int, bucket_seconds: int
+) -> list[dict[str, Any]]:
+    """Success rate per bank in fixed time buckets, for the live chart."""
+    cur = await conn.execute(
+        _TIMESERIES_SQL, {"window_seconds": window_seconds, "bucket_seconds": bucket_seconds}
+    )
+    return await cur.fetchall()
+
+
+# The investigation's evidence. "current" is the last window; "baseline" is the period
+# just before it, so the LLM can compare without doing any arithmetic itself.
+_BREAKDOWN_BY_METHOD_SQL = """
+WITH scoped AS (
+    SELECT method, status, latency_ms,
+           created_at >= now() - make_interval(secs => %(window_seconds)s) AS is_current
+    FROM payments
+    WHERE bank = %(bank)s
+      -- Casts matter: psycopg sends small ints as int2, and int2 + int2 can overflow.
+      AND created_at >= now() - make_interval(
+          secs => %(window_seconds)s::int + %(baseline_seconds)s::int)
+)
+SELECT method,
+       count(*) FILTER (WHERE is_current) AS current_total,
+       round(avg((status = 'SUCCESS')::int) FILTER (WHERE is_current), 4)::float8
+           AS current_success_rate,
+       round(percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)
+             FILTER (WHERE is_current))::int
+           AS current_p95_latency_ms,
+       count(*) FILTER (WHERE NOT is_current) AS baseline_total,
+       round(avg((status = 'SUCCESS')::int) FILTER (WHERE NOT is_current), 4)::float8
+           AS baseline_success_rate,
+       round(percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)
+             FILTER (WHERE NOT is_current))::int
+           AS baseline_p95_latency_ms
+FROM scoped
+GROUP BY method
+ORDER BY method
+"""
+
+_BREAKDOWN_ERRORS_SQL = """
+SELECT error_code,
+       count(*)                                                AS count,
+       round(count(*)::numeric / sum(count(*)) OVER (), 4)::float8 AS share_of_failures,
+       round(avg(latency_ms))::int                             AS avg_latency_ms
+FROM payments
+WHERE bank = %(bank)s
+  AND status = 'FAILED'
+  AND created_at >= now() - make_interval(secs => %(window_seconds)s)
+GROUP BY error_code
+ORDER BY count DESC, error_code
+"""
+
+_BREAKDOWN_BANKS_SQL = """
+SELECT bank,
+       count(*)                                          AS total,
+       round(avg((status = 'SUCCESS')::int), 4)::float8  AS success_rate
+FROM payments
+WHERE created_at >= now() - make_interval(secs => %(window_seconds)s)
+GROUP BY bank
+ORDER BY bank
+"""
+
+
+async def get_breakdown(
+    conn: AsyncConnection, bank: str, window_seconds: int, baseline_seconds: int
+) -> dict[str, Any]:
+    params = {"bank": bank, "window_seconds": window_seconds, "baseline_seconds": baseline_seconds}
+    by_method = await (await conn.execute(_BREAKDOWN_BY_METHOD_SQL, params)).fetchall()
+    errors = await (await conn.execute(_BREAKDOWN_ERRORS_SQL, params)).fetchall()
+    banks = await (await conn.execute(_BREAKDOWN_BANKS_SQL, params)).fetchall()
+    return {"by_method": by_method, "errors": errors, "all_banks": banks}

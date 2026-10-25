@@ -75,6 +75,52 @@ class StatsResponse(BaseModel):
     groups: list[StatsGroup]
 
 
+class TimeseriesPoint(BaseModel):
+    bank: Bank
+    bucket_start: datetime
+    total: int
+    success_rate: float
+
+
+class TimeseriesResponse(BaseModel):
+    window_seconds: int
+    bucket_seconds: int
+    points: list[TimeseriesPoint]
+
+
+class MethodBreakdown(BaseModel):
+    method: Method
+    current_total: int
+    current_success_rate: float | None
+    current_p95_latency_ms: int | None
+    baseline_total: int
+    baseline_success_rate: float | None
+    baseline_p95_latency_ms: int | None
+
+
+class ErrorShare(BaseModel):
+    error_code: ErrorCode
+    count: int
+    share_of_failures: float
+    avg_latency_ms: int
+
+
+class BankSummary(BaseModel):
+    bank: Bank
+    total: int
+    success_rate: float
+
+
+class BreakdownResponse(BaseModel):
+    bank: Bank
+    window_seconds: int
+    baseline_seconds: int
+    generated_at: datetime
+    by_method: list[MethodBreakdown]
+    errors: list[ErrorShare]
+    all_banks: list[BankSummary]
+
+
 class DeployRequest(StrictModel):
     service: str = Field(min_length=1, max_length=100)
     version: str = Field(min_length=1, max_length=100)
