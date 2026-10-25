@@ -1,0 +1,2 @@
+# Files are copied into Linux containers, so keep LF even on Windows checkouts.
+* text=auto eol=lf
