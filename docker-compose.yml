@@ -40,7 +40,7 @@ services:
     build: ./payment-service
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-paypulse}:${POSTGRES_PASSWORD:-paypulse}@postgres:5432/${POSTGRES_DB:-paypulse}
-      TRAFFIC_RPS: ${TRAFFIC_RPS:-5}
+      TRAFFIC_RPS: ${TRAFFIC_RPS:-20}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${PAYMENT_SERVICE_PORT:-8080}:8080"

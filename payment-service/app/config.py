@@ -16,5 +16,5 @@ class Settings(BaseSettings):
     db_startup_retries: int = Field(default=30, ge=1)
     db_startup_retry_delay_s: float = Field(default=2.0, gt=0)
 
-    traffic_rps: float = Field(default=5.0, ge=0, le=100)
+    traffic_rps: float = Field(default=20.0, ge=0, le=100)
     log_level: str = "INFO"
