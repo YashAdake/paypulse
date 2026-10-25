@@ -112,8 +112,8 @@ claude
 Paste this prompt into Claude:
 
 ```text
-You are on the PayPulse demo Mac (macOS, zsh, Docker Desktop). Read CLAUDE.md,
-README.md and docs/DEMO_GUIDE.md first. We are on branch feature/phase-2, which
+You are on the PayPulse demo Mac (macOS, zsh, Docker Desktop). Read docs/HANDOFF.md
+(full project context from the build session), CLAUDE.md and docs/DEMO_GUIDE.md first. We are on branch feature/phase-2, which
 contains Phases 0-5 plus the Command Center UI. It was written on a Windows laptop
 without Docker: Python unit tests (48), ruff and static checks passed, Jarvislabs and
 Supermemory were tested live, and the seed incidents are already in Supermemory. But
