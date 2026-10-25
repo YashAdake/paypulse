@@ -9,7 +9,9 @@ One-liner: "When payments start failing, PayPulse finds out why in
 seconds, remembers past fixes, and repairs it with one click of approval."
 
 ## Stack (keep it simple and explainable)
-- Python 3.12 everywhere. FastAPI for HTTP APIs.
+- Python 3.12 for all backend services. FastAPI for HTTP APIs.
+- UI: "Command Center" in React + Vite + TypeScript. Built only inside
+  Docker, so no Node is needed on the laptop.
 - Postgres 16. Plain SQL via psycopg 3 (no ORM); SQL is easy to explain.
 - Temporal (Python SDK): durable InvestigateIncident workflow,
   approval signal, timers
@@ -24,7 +26,9 @@ seconds, remembers past fixes, and repairs it with one click of approval."
                     traffic generator
 - worker/           Temporal worker + detector + agent activities
 - memory-seed/      fake past postmortems for Supermemory
-- ui/               simple approval page (fallback if Kepler doesn't fit)
+- ui/               Command Center: live payments, incident timeline,
+                    memory recall, AI root cause, approve button,
+                    recovery chart, "powered by" partner panel
 - docker-compose.yml  Postgres + Temporal dev server + services
 
 ## Workflow steps
@@ -40,7 +44,11 @@ wait for approval signal -> run runbook -> verify recovery -> save to memory
 - Main must always run. Feature branches + PRs.
 - Never commit .env or keys (this repo is PUBLIC)
 - Scope: ONE scenario (HDFC timeouts) end to end before anything else.
-  No UI work until phases 1-5 work.
+- The UI grows with the backend from Phase 2: each phase adds its panel,
+  always on real data (no mock-only screens). The workflow exposes its
+  live progress (steps, timings, model, tokens, memory hits) for the UI.
+- Show each partner where it does its job: Temporal, Supermemory,
+  Jarvislabs, Kepler (RubixKube). The UI must make that obvious.
 
 ## Engineering standards
 Act as a senior engineer. Production-quality code, hackathon-sized scope.
@@ -76,5 +84,7 @@ else runs on a separate demo PC: git pull -> docker compose up --build -d.
 Keep changes small and buildable.
 
 ## Phases
-0 repo + Docker stack | 1 payment service + chaos | 2 workflow skeleton |
-3 evidence + LLM | 4 Supermemory | 5 approve -> fix -> verify | 6 UI/Kepler + demo
+0 repo + Docker stack | 1 payment service + chaos |
+2 workflow skeleton + UI shell (live payments, timeline) |
+3 evidence + LLM (+ root-cause panel) | 4 Supermemory (+ memory panel) |
+5 approve -> fix -> verify (+ approval, recovery) | 6 UI polish/Kepler + demo
