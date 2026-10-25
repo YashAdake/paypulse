@@ -9,7 +9,7 @@ incidents were fixed before, proposes a fix, waits for a human to approve it, ap
 it, checks that payments recovered, and saves the incident to memory for next time.
 
 Hackathon project. Rules for contributors (and AI assistants): [CLAUDE.md](CLAUDE.md).
-Running it on the demo PC: [docs/DEMO_PC.md](docs/DEMO_PC.md).
+Running it on the demo Mac, step by step: [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
 
 ## How it works
 
@@ -91,6 +91,8 @@ Branch from `main`, open a PR, merge once it works on the demo PC. Never commit 
 or keys: **this repo is public**.
 
 ## Run on the demo PC
+
+On macOS, follow [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md) (zsh and curl commands). On Windows:
 
 ```powershell
 git clone https://github.com/YashAdake/paypulse.git; cd paypulse
