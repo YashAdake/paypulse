@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html,
+body {
+  background: #020617;
+  color: #e2e8f0;
+}
+
+/* Subtle grid behind everything: reads as an operations console on a projector. */
+body {
+  background-image:
+    radial-gradient(circle at 20% -10%, rgba(56, 189, 248, 0.12), transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(167, 139, 250, 0.1), transparent 35%),
+    linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+  background-size: auto, auto, 32px 32px, 32px 32px;
+  min-height: 100vh;
+}
