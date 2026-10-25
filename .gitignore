@@ -9,6 +9,10 @@ __pycache__/
 .venv/
 venv/
 
+# UI
+node_modules/
+dist/
+
 # Tooling caches
 .pytest_cache/
 .ruff_cache/

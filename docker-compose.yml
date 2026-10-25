@@ -56,5 +56,66 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  # PayPulse itself: detector + Temporal worker running the InvestigateIncident workflow.
+  worker:
+    build: ./worker
+    environment: &paypulse-env
+      TEMPORAL_ADDRESS: temporal:7233
+      PAYMENT_SERVICE_URL: http://payment-service:8080
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://models.jarvislabs.net/v1}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-v4.1-flash-1017}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      SUPERMEMORY_API_KEY: ${SUPERMEMORY_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      # service_started, not healthy: both apps retry Temporal themselves, so an
+      # unexpected healthcheck result can't block the whole stack.
+      temporal:
+        condition: service_started
+      payment-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Backend for the Command Center: relays live stats, reads incident progress, sends approvals.
+  api:
+    build: ./api
+    environment: *paypulse-env
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      temporal:
+        condition: service_started
+      payment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  # The Command Center: React app served by nginx, which also proxies /api to the api service.
+  ui:
+    build: ./ui
+    ports:
+      - "${UI_PORT:-3000}:8080"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  # One-off: load the fake past postmortems into Supermemory.
+  #   docker compose run --rm memory-seed
+  memory-seed:
+    build: ./worker
+    profiles: ["tools"]
+    command: ["python", "-m", "app.seed_memory"]
+    environment:
+      SUPERMEMORY_API_KEY: ${SUPERMEMORY_API_KEY:-}
+      SEED_DIR: /seed
+    volumes:
+      - ./memory-seed:/seed:ro
+
 volumes:
   postgres-data:
