@@ -1,0 +1,3 @@
+# Laptop tooling only (lint + pure-logic tests). Services pin their own runtime deps.
+pytest==9.1.1
+ruff==0.17.2
